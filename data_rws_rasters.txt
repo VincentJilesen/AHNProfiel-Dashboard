@@ -1,0 +1,9 @@
+2019;1;8;V:\dr_gis_hd\dr_hollandse_delta\basisregistraties\hoogtebestanden\lodingen\RWS_lodingen_2023_output\19HVL14ml_1_1_8_1_2019_RWS.tif
+2020;3;20;V:\dr_gis_hd\dr_hollandse_delta\basisregistraties\hoogtebestanden\lodingen\RWS_lodingen_2023_output\20HDP13ml3_3_20_3_2020_RWS.tif
+2018;6;25;V:\dr_gis_hd\dr_hollandse_delta\basisregistraties\hoogtebestanden\lodingen\RWS_lodingen_2023_output\18DKL114ml6_1_25_6_2018_RWS.tif
+2018;2;1;V:\dr_gis_hd\dr_hollandse_delta\basisregistraties\hoogtebestanden\lodingen\RWS_lodingen_2023_output\18HVL014ml2_01_1_2_2018_RWS.tif
+2021;12;15;V:\dr_gis_hd\dr_hollandse_delta\basisregistraties\hoogtebestanden\lodingen\RWS_lodingen_2023_output\21NMS2ml12_1_15_12_2021_RWS.tif
+2021;12;15;V:\dr_gis_hd\dr_hollandse_delta\basisregistraties\hoogtebestanden\lodingen\RWS_lodingen_2023_output\21NWG1ml12_1_15_12_2021_RWS.tif
+2022;1;24;V:\dr_gis_hd\dr_hollandse_delta\basisregistraties\hoogtebestanden\lodingen\RWS_lodingen_2023_output\22OMS16ml1_1_24_1_2022_RWS.tif
+2021;7;1;V:\dr_gis_hd\dr_hollandse_delta\basisregistraties\hoogtebestanden\lodingen\RWS_lodingen_2023_output\21NME200ml_7_1_1_7_2021_RWS.tif
+2021;3;24;V:\dr_gis_hd\dr_hollandse_delta\basisregistraties\hoogtebestanden\lodingen\RWS_lodingen_2023_output\21SPU3ml_3_1_24_3_2021_RWS.tif
