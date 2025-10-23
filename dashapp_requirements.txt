@@ -7,3 +7,5 @@ plotly
 pandas
 geopandas
 chardet
+rasterio
+owslib

@@ -1,99 +1,189 @@
-#%%
-# Setup
 import os
-import numpy as np
-import pandas as pd
-import math
-from tqdm import tqdm
 import geopandas as gpd
-import warnings 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import warnings
 
-import functions_general
-import functions_Geometry_WSHD
+import functions_Geometry_AHN
 
-# Suppress warnings, divide by zero warnings
-warnings.filterwarnings("ignore") 
+warnings.filterwarnings("ignore")
+
+# ---------------------------------------------------------------
+# Folder configuration
+# ---------------------------------------------------------------
 main_folder = r"C:\Users\vinji\Python\AHNProfiel_Viewer\AHNProfiel_Dashboard"
 
+# Input and output folders
+input_folder = os.path.join(main_folder, "01_Input_shapefiles")
+save_intermediate = os.path.join(main_folder, "02_Intermediate_shapefiles")
+save_bathy = os.path.join(main_folder, "03_Bathymetry")
+rasterdate_file = os.path.join(main_folder, "data_rws_rasters.txt")
 
+# Create necessary folders
+os.makedirs(save_intermediate, exist_ok=True)
+os.makedirs(save_bathy, exist_ok=True)
 
-#%% 
-# Dwarsprofielen ter plaatse genereren
-# volgende functie is maar eenmalig wanneer nieuwe dwarsprofielen worden gegenereerd
+# Subfolder for AHN TIFFs
+ahn_folder = os.path.join(save_bathy, "ahn_tiffs")
+os.makedirs(ahn_folder, exist_ok=True)
+
+# Skip generating DWP shapefiles if already done
+skip_dwp_generation = True
+
+# Skip existing CSVs to save time
+skip_existing_csv = True
+
+# ---------------------------------------------------------------
+# DWP generation settings
+# ---------------------------------------------------------------
 x_voorland_p = 200
 x_achterland_p = 150
 x_voorland_b = 150
 x_achterland_b = 100
-input_folder = os.path.join(main_folder, "01_Input_shapefiles")
-savef = os.path.join(main_folder, "02_Intermediate_shapefiles")
 
-# input datafiles primaire kering
-file_in = os.path.join(input_folder,"Hecto_Dijkring_Join.shp")
-file_klijn = os.path.join(input_folder,"WSHDNormtraject_Base.shp")
-file_offlijn = os.path.join(input_folder,"WSHD_prim_kering_2025_5moffbinnen.shp")
+# ---------------------------------------------------------------
+# Generate DWP shapefiles
+# ---------------------------------------------------------------
+if skip_dwp_generation is False:
+    # Primair
+    file_in = os.path.join(input_folder, "Hecto_Dijkring_Join.shp")
+    file_klijn = os.path.join(input_folder, "WSHDNormtraject_Base.shp")
+    file_offlijn = os.path.join(input_folder,
+                                "WSHD_prim_kering_2025_5moffbinnen.shp")
 
-dwp_new = functions_Geometry_WSHD.generate_dwp(file_in, file_klijn, file_offlijn, x_achterland_p, x_voorland_p)
-dwp_new.to_file(os.path.join(savef,"dwp_2025_prim_kering_hecto.shp"))
-
-
-# input datafiles boezem links
-file_in = os.path.join(input_folder,"WSHD_Boezem_Join.shp")
-file_klijn = os.path.join(input_folder,"WSHDNormtraject_Base.shp")
-file_offlijn = os.path.join(input_folder,"WSHD_Boezem_5mLinksOffset.shp")
-
-dwp_new = functions_Geometry_WSHD.generate_dwp(file_in, file_klijn, file_offlijn, x_achterland_b, x_voorland_b)
-dwp_new.to_file(os.path.join(savef,"dwp_2025_boezem_links_hecto.shp"))
-
-
-# input datafiles boezem rechts
-file_in = os.path.join(input_folder,"WSHD_Boezem_Join.shp")
-file_klijn = os.path.join(input_folder,"WSHDNormtraject_Base.shp")
-file_offlijn = os.path.join(input_folder,"WSHD_Boezem_5mRechtsOffset.shp")
-
-dwp_new=functions_Geometry_WSHD.generate_dwp(file_in, file_klijn, file_offlijn, x_achterland_b, x_voorland_b)
-dwp_new.to_file(os.path.join(savef,"dwp_2025_boezem_rechts_hecto.shp"))
-
-
-#%% 
-# Generate raster to df (and csv) for each dwp
-
-input_folder = os.path.join(main_folder, "02_Intermediate_shapefiles")
-savef = os.path.join(main_folder, "03_Bathymetry")
-rasterdate_file = os.path.join(main_folder,'data_rws_rasters.txt')
-
-#%%
-# input datafiles primaire kering
-file_dwp = os.path.join(input_folder,'dwp_2025_prim_kering_hecto.shp')
-data: gpd.GeoDataFrame = gpd.read_file(file_dwp).set_crs(28992)
-
-def run_step(i):
-    # Eén element verwerken
-    functions_Geometry_WSHD.step1_raster_data_to_df(
-        data.iloc[i], rasterdate_file, "primair", savef
+    print("🧭 Generating DWP Primair...")
+    dwp_primair = functions_Geometry_AHN.generate_dwp(
+        file_in, file_klijn, file_offlijn, x_achterland_p, x_voorland_p
     )
+    file_prim = os.path.join(save_intermediate,
+                             "dwp_2025_prim_kering_hecto.shp")
+    dwp_primair.to_file(file_prim)
+    print(f"✅ Saved: {file_prim}")
 
-# ThreadPool gebruiken
-with ThreadPoolExecutor(max_workers=8) as executor:  # pas workers aan naar je CPU/I/O
-    futures = [executor.submit(run_step, i) for i in range(len(data))]
+    # Boezem links
+    file_in = os.path.join(input_folder, "WSHD_Boezem_Join.shp")
+    file_klijn = os.path.join(input_folder, "WSHDNormtraject_Base.shp")
+    file_offlijn = os.path.join(input_folder,
+                                "WSHD_Boezem_5mLinksOffset.shp")
 
-    # Optioneel: wachten tot alles klaar is
-    for f in futures:
-        f.result()
+    print("🧭 Generating DWP Boezem Links...")
+    dwp_links = functions_Geometry_AHN.generate_dwp(
+        file_in, file_klijn, file_offlijn, x_achterland_b, x_voorland_b
+    )
+    file_links = os.path.join(save_intermediate,
+                              "dwp_2025_boezem_links_hecto.shp")
+    dwp_links.to_file(file_links)
+    print(f"✅ Saved: {file_links}")
+
+    # Boezem rechts
+    file_in = os.path.join(input_folder, "WSHD_Boezem_Join.shp")
+    file_klijn = os.path.join(input_folder, "WSHDNormtraject_Base.shp")
+    file_offlijn = os.path.join(input_folder,
+                                "WSHD_Boezem_5mRechtsOffset.shp")
+
+    print("🧭 Generating DWP Boezem Rechts...")
+    dwp_rechts = functions_Geometry_AHN.generate_dwp(
+        file_in, file_klijn, file_offlijn, x_achterland_b, x_voorland_b
+    )
+    file_rechts = os.path.join(save_intermediate,
+                               "dwp_2025_boezem_rechts_hecto.shp")
+    dwp_rechts.to_file(file_rechts)
+    print(f"✅ Saved: {file_rechts}")
 
 
-#%%
-# input datafiles boezem links
-file_dwp = os.path.join(input_folder,'dwp_2025_boezem_links_hecto.shp')
-data: gpd.GeoDataFrame = gpd.read_file(file_dwp).set_crs(28992)
+# ---------------------------------------------------------------
+# Worker function (runs in parallel)
+# ---------------------------------------------------------------
+def process_feature(
+        row,
+        rasterdate_file,
+        savef,
+        shape_group,
+        ahn_folder,
+        skip_existing
+        ):
 
-for i in range(len(data)):
-    dfs = functions_Geometry_WSHD.step1_raster_data_to_df(data.iloc[i], rasterdate_file, "boezem_links", savef)
+    try:
+        import os
+        import functions_Geometry_AHN
 
-# input datafiles boezem rechts
-file_dwp = os.path.join(input_folder,'dwp_2025_boezem_rechts_hecto.shp')
-data: gpd.GeoDataFrame = gpd.read_file(file_dwp).set_crs(28992)
+        # Subfolder for group-specific TIFFs
+        tiff_folder = os.path.join(ahn_folder, shape_group)
+        os.makedirs(tiff_folder, exist_ok=True)
 
-for i in range(len(data)):
-    dfs = functions_Geometry_WSHD.step1_raster_data_to_df(data.iloc[i], rasterdate_file, "boezem_links", savef)
-# %%
+        # Expected CSV name
+        if shape_group == "boezem_rechts":
+            name_csv = f"dp_cpt_{row.unique_}_Rechts.csv"
+        elif shape_group == "boezem_links":
+            name_csv = f"dp_cpt_{row.unique_}_Links.csv"
+        elif shape_group == "primair":
+            name_csv = f"dp_cpt_{row.unique_}_Primair.csv"
+        else:
+            name_csv = f"dp_cpt_{row.unique_}_Unknown.csv"
+
+        csv_path = os.path.join(save_bathy, name_csv)
+
+        # Skip if CSV already exists
+        if skip_existing and os.path.exists(csv_path):
+            return f"⏩ Skipped existing CSV: {name_csv}"
+
+        # Process this DWP
+        df, path = functions_Geometry_AHN.raster_data_to_df(
+            dwp=row,
+            rasterdate_file=rasterdate_file,
+            shape_group=shape_group,
+            csv_folder=save_bathy,
+            tiff_folder=tiff_folder,
+        )
+
+        return f"✅ {shape_group}: {getattr(row, 'unique_', '?')}"
+
+    except Exception as e:
+        return f"⚠️ {shape_group}: {getattr(row, 'unique_', '?')} -> {e}"
+
+
+# ---------------------------------------------------------------
+# Run a group in parallel
+# ---------------------------------------------------------------
+def run_parallel_group(file_dwp, shape_group):
+    print(f"\n=== Processing group: {shape_group} ===")
+    data = gpd.read_file(file_dwp).set_crs(28992)
+
+    if len(data) == 0:
+        print(f"⚠️ No features found in {file_dwp}")
+        return
+
+    rows = [row for _, row in data.iterrows()]
+    results = []
+
+    with ProcessPoolExecutor(max_workers=4) as executor:
+        futures = [
+            executor.submit(
+                process_feature, row, rasterdate_file, save_bathy,
+                shape_group, ahn_folder, skip_existing_csv
+            )
+            for row in rows
+        ]
+        for f in as_completed(futures):
+            try:
+                results.append(f.result())
+            except Exception as e:
+                results.append(f"💥 Crash: {e}")
+
+    print("\n".join(results))
+    print(f"✅ Finished {len(results)} profiles for {shape_group}.")
+
+
+# ---------------------------------------------------------------
+# Run for all groups
+# ---------------------------------------------------------------
+if __name__ == "__main__":
+    run_parallel_group(os.path.join(
+        save_intermediate, "dwp_2025_prim_kering_hecto.shp"), "primair"
+                       )
+    run_parallel_group(os.path.join(
+        save_intermediate, "dwp_2025_boezem_links_hecto.shp"), "boezem_links"
+                       )
+    run_parallel_group(os.path.join(
+        save_intermediate, "dwp_2025_boezem_rechts_hecto.shp"), "boezem_rechts"
+                       )
+    print("\n🎯 All DWP sets completed successfully.")

@@ -440,10 +440,11 @@ def update_detail(idx, rangevalue: Tuple[int, int]):
         except Exception:
             df = pd.read_csv(path, sep=';', decimal=',')
 
-        if 'xRD' not in df.columns:
-            raise ValueError(
-                f"Kolom 'xRD' niet gevonden in {os.path.basename(path)}"
-                )
+        # Forceer de kolommen in de juiste volgorde
+        end_cols = ["xRD", "yRD", "ahn", "meters"]
+        cols = ([c for c in df.columns if c not in end_cols]
+                + [c for c in end_cols if c in df.columns])
+        df = df[cols]
 
         # Alle kolommen strikt vóór xRD (xRD uitgesloten)
         idx_xrd = df.columns.get_loc('xRD')
@@ -460,7 +461,7 @@ def update_detail(idx, rangevalue: Tuple[int, int]):
                 )
 
         # Maak numeriek en vervang ±inf door NaN
-        df = df.replace([np.inf, -np.inf], np.nan)
+        df = df.replace([np.inf, -np.inf, float(0.0)], np.nan)
 
         # x uit meters
         df['x'] = pd.to_numeric(df['meters'], errors='coerce')
