@@ -1,14 +1,34 @@
 # flake8: noqa: E402
+# ---- Setup -----
 import os
+import sys
 import warnings
+from pathlib import Path
 
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("ignore", category=RuntimeWarning)
+# ── Suppress Python warnings ───────────────────────────────
+warnings.filterwarnings("ignore")
+os.environ["CPL_LOG"] = "NUL"   # disable GDAL console logs
+os.environ["CPL_DEBUG"] = "OFF"
 
-# TODO Update this for different installaton
-os.environ["GDAL_DATA"] = r"C:\Users\vinji\.conda\envs\DashApp\Library\share\gdal"
-os.environ["PROJ_LIB"]  = r"C:\Users\vinji\.conda\envs\DashApp\Library\share\proj"
+# ── Auto-detect .venv base from the current Python executable ───────────────
+python_exe = Path(sys.executable).resolve()
+venv_root = python_exe.parents[1]  # -> .../.venv
+site_packages = venv_root / "Lib" / "site-packages" / "osgeo" / "data"
 
+# ── Define GDAL and PROJ data directories ───────────────────────────────
+gdal_data = site_packages / "gdal"
+proj_lib  = site_packages / "proj"
+
+# ── Apply environment variables ───────────────────────────────
+os.environ["GDAL_DATA"] = str(gdal_data)
+os.environ["PROJ_LIB"]  = str(proj_lib)
+
+# ── Ensure .venv\Scripts is on PATH (for GDAL DLLs) ───────────────────────
+scripts_dir = venv_root / "Scripts"
+if str(scripts_dir) not in os.environ["PATH"]:
+    os.environ["PATH"] = f"{scripts_dir};{os.environ['PATH']}"
+
+# ------ Imports --------
 from dash import (Dash, html, dcc, Input, Output,
                   State, dash_table, callback, callback_context)
 import dash_bootstrap_components as dbc
