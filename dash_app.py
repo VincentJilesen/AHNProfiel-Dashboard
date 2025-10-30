@@ -1,3 +1,14 @@
+# flake8: noqa: E402
+import os
+import warnings
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+# TODO Update this for different installaton
+os.environ["GDAL_DATA"] = r"C:\Users\vinji\.conda\envs\DashApp\Library\share\gdal"
+os.environ["PROJ_LIB"]  = r"C:\Users\vinji\.conda\envs\DashApp\Library\share\proj"
+
 from dash import (Dash, html, dcc, Input, Output,
                   State, dash_table, callback, callback_context)
 import dash_bootstrap_components as dbc
@@ -12,14 +23,14 @@ from typing import cast, Optional, Tuple
 # ------------------ Config ------------------
 MAP_HEIGHT = 600
 PROFILE_HEIGHT = 420
-DEFAULT_ZOOM = 15   # 16–19 is meestal prettig
+DEFAULT_ZOOM = 15
 
 boezem_side = 'links'
 
 app = Dash(external_stylesheets=[dbc.themes.CERULEAN])
 
-
 # ------------------ Helpers ------------------
+
 def ensure_unique(
         df: pd.DataFrame,
         boezem: Optional[bool] = False
@@ -61,10 +72,12 @@ def ensure_unique(
 def lines_to_latlon(geom: LineString | MultiLineString) -> list:
     out = []
     if isinstance(geom, LineString):
-        x, y = geom.xy; out.append((list(y), list(x)))
+        x, y = geom.xy
+        out.append((list(y), list(x)))
     elif isinstance(geom, MultiLineString):
         for g in geom.geoms:
-            x, y = g.xy; out.append((list(y), list(x)))
+            x, y = g.xy
+            out.append((list(y), list(x)))
     return out
 
 
@@ -175,10 +188,10 @@ def make_map_with_highlight(
     scatter_traces = cast(tuple[go.Scatter, ...], fig.data)
     for trace in scatter_traces:
         if trace['name'] == 'primair':
-            trace['marker'] = marker=dict(size=12, color="#2563eb")
+            trace['marker'] = dict(size=12, color="#2563eb")
 
         if trace['name'] == 'boezem':
-            trace['marker'] = marker=dict(size=10, color="#5c8cf3")
+            trace['marker'] = dict(size=10, color="#5c8cf3")
 
     fig.data = scatter_traces
 
